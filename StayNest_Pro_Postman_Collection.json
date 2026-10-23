@@ -1,0 +1,2403 @@
+{
+  "info": {
+    "_postman_id": "staynest-pro-collection-2026",
+    "name": "StayNest Pro Backend API Tests",
+    "description": "Comprehensive Postman test collection for StayNest Pro Modules 1-16 with JWT authentication, RBAC authorization, booking lifecycle, Stripe payments, invoices, and automated assertions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication and RBAC",
+      "item": [
+        {
+          "name": "1. Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Login Successful', function () { pm.expect(jsonData.success).to.eql(true); });",
+                  "if (jsonData.data && jsonData.data.tokens) {",
+                  "    pm.environment.set('admin_access_token', jsonData.data.tokens.access_token);",
+                  "    pm.environment.set('access_token', jsonData.data.tokens.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.data.tokens.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@staynest.com\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "2. Customer Registration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.user) {",
+                  "    pm.environment.set('customer_id', jsonData.data.user.id);",
+                  "    pm.environment.set('access_token', jsonData.data.tokens.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.data.tokens.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer_{{$timestamp}}@staynest.com\",\n  \"password\": \"CustomerPassword123!\",\n  \"full_name\": \"Jessica Taylor\",\n  \"phone_number\": \"+1-305-555-0144\",\n  \"role\": \"CUSTOMER\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "3. Hotel Owner Registration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.tokens) {",
+                  "    pm.environment.set('access_token', jsonData.data.tokens.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.data.tokens.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner_{{$timestamp}}@staynest.com\",\n  \"password\": \"OwnerPassword123!\",\n  \"full_name\": \"David Sterling\",\n  \"phone_number\": \"+1-407-555-0188\",\n  \"role\": \"HOTEL_OWNER\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "4. Get Current User Profile (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Profile retrieved', function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/me"
+          }
+        },
+        {
+          "name": "5. Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('access_token', jsonData.data.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/refresh-token"
+          }
+        },
+        {
+          "name": "6. Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.reset_token) {",
+                  "    pm.environment.set('reset_token', jsonData.data.reset_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@staynest.com\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/forgot-password"
+          }
+        },
+        {
+          "name": "7. Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_token}}\",\n  \"new_password\": \"Admin@123456\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/reset-password"
+          }
+        },
+        {
+          "name": "8. Admin List Users (RBAC Protected)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/users"
+          }
+        },
+        {
+          "name": "9. Logout and Invalidate Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Profiles",
+      "item": [
+        {
+          "name": "1. Get Customer Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/customers/profile/me"
+          }
+        },
+        {
+          "name": "2. Update Customer Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Beverly Hills\",\n  \"country\": \"USA\",\n  \"postal_code\": \"90210\",\n  \"emergency_contact_name\": \"Michael Scott\",\n  \"emergency_contact_phone\": \"+1-800-555-0199\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/customers/profile/me"
+          }
+        },
+        {
+          "name": "3. Get Travel Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/customers/profile/preferences"
+          }
+        },
+        {
+          "name": "4. Update Travel Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"smoking\": false,\n  \"dietary\": \"Gluten-Free\",\n  \"room_floor\": \"high\",\n  \"bed_preference\": \"King Bed\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/customers/profile/preferences"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hotel Registration and Verification",
+      "item": [
+        {
+          "name": "1. Register Hotel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.environment.set('hotel_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Azure Horizon Palace & Spa\",\n  \"description\": \"Luxury 5-star beachfront resort in sunny Miami Beach.\",\n  \"property_type\": \"RESORT\",\n  \"email\": \"booking@azurepalace.com\",\n  \"phone\": \"+1-305-555-9922\",\n  \"website\": \"https://www.azurepalace.com\",\n  \"address_line1\": \"1200 Collins Ave\",\n  \"city\": \"Miami Beach\",\n  \"state\": \"Florida\",\n  \"country\": \"USA\",\n  \"postal_code\": \"33139\",\n  \"latitude\": 25.7825,\n  \"longitude\": -80.1303,\n  \"check_in_time\": \"15:00\",\n  \"check_out_time\": \"11:00\",\n  \"cancellation_policy\": \"Full refund up to 48 hours before check-in\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/verification/register"
+          }
+        },
+        {
+          "name": "2. List Pending Hotels (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/hotels/verification/pending"
+          }
+        },
+        {
+          "name": "3. Approve Hotel Application (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/verification/{{hotel_id}}/moderation"
+          }
+        },
+        {
+          "name": "4. Suspend or Reactivate Hotel (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suspend\": false\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/verification/{{hotel_id}}/suspend"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hotels, Rooms, and Amenities",
+      "item": [
+        {
+          "name": "1. Get Hotel Profile by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "2. Update Hotel Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"star_rating\": 4.9,\n  \"house_rules\": \"No smoking. Pets welcome upon request.\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "3. Create Room Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.environment.set('room_type_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Deluxe Ocean Villa\",\n  \"code\": \"DLX-VLA\",\n  \"description\": \"Ocean-view villa with private plunge pool and king bed\",\n  \"base_price_per_night\": 320.00,\n  \"max_occupancy\": 3,\n  \"max_adults\": 2,\n  \"max_children\": 1,\n  \"bed_type\": \"King\",\n  \"room_size_sqft\": 650.0,\n  \"amenities_included\": [\"Private Pool\", \"Ocean View\", \"Espresso Machine\"]\n}"
+            },
+            "url": "{{base_url}}/api/v1/room-types/hotel/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "4. List Hotel Room Types",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/room-types/hotel/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "5. Create Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.environment.set('room_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": {{hotel_id}},\n  \"room_type_id\": {{room_type_id}},\n  \"room_number\": \"Villa-101\",\n  \"floor_number\": 1,\n  \"status\": \"AVAILABLE\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/rooms/"
+          }
+        },
+        {
+          "name": "6. Update Room Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"AVAILABLE\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/rooms/{{room_id}}/status"
+          }
+        },
+        {
+          "name": "7. List Rooms for Hotel",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/rooms/hotel/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "8. List All System Amenities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.length > 0) {",
+                  "    pm.environment.set('amenity_id', jsonData.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/amenities/"
+          }
+        },
+        {
+          "name": "9. Associate Amenities with Hotel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amenity_ids\": [1, 2, 3, 4, 5]\n}"
+            },
+            "url": "{{base_url}}/api/v1/amenities/hotel/{{hotel_id}}/associate"
+          }
+        },
+        {
+          "name": "10. Get Hotel Amenities",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/amenities/hotel/{{hotel_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Availability and Search",
+      "item": [
+        {
+          "name": "1. Set Single Date Availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": {{room_id}},\n  \"date\": \"2026-11-01\",\n  \"status\": \"AVAILABLE\",\n  \"price_override\": 350.00\n}"
+            },
+            "url": "{{base_url}}/api/v1/availability/set-date"
+          }
+        },
+        {
+          "name": "2. Bulk Set Date Range Availability (Maintenance Block)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": {{room_id}},\n  \"start_date\": \"2026-11-15\",\n  \"end_date\": \"2026-11-18\",\n  \"status\": \"MAINTENANCE\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/availability/set-range"
+          }
+        },
+        {
+          "name": "3. Get Room Availability Calendar",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/availability/room/{{room_id}}?start_date=2026-11-01&end_date=2026-11-20"
+          }
+        },
+        {
+          "name": "4. Search Hotel Room Availability for Dates & Guests",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/availability/hotel/{{hotel_id}}/search?check_in=2026-11-02&check_out=2026-11-05&guests=2"
+          }
+        },
+        {
+          "name": "5. Search Hotels by Name and Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Search successful', function () { pm.expect(jsonData.success).to.eql(true); });",
+                  "pm.test('Items array returned', function () { pm.expect(jsonData.data.items).to.be.an('array'); });",
+                  "pm.test('Pagination metadata present', function () { pm.expect(jsonData.data.pagination).to.have.property('total'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/search/hotels?name=Miami&location=Miami&sort_by=rating_desc&page=1&limit=10"
+          }
+        },
+        {
+          "name": "6. Search by Room Type and Guest Capacity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Filtered by room type and guests', function () { pm.expect(jsonData.success).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/search/hotels?room_type=Deluxe&guests=2"
+          }
+        },
+        {
+          "name": "7. Retrieve Nearby Hotels by Coordinates (Haversine)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Returns hotels with distance_km', function () {",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    if (jsonData.data.items.length > 0) {",
+                  "        pm.expect(jsonData.data.items[0]).to.have.property('distance_km');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/search/hotels?latitude=25.7825&longitude=-80.1303&radius_km=25.0&sort_by=distance_asc"
+          }
+        },
+        {
+          "name": "8. Search with Pagination and Sorting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Pagination verification', function () {",
+                  "    pm.expect(jsonData.data.pagination.page).to.eql(1);",
+                  "    pm.expect(jsonData.data.pagination.limit).to.eql(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/search/hotels?sort_by=price_asc&page=1&limit=5"
+          }
+        },
+        {
+          "name": "9. Advanced Multi-Criteria Hotel Filters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Filter returned results', function () { pm.expect(jsonData.success).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/filters/hotels?min_rating=4.0&property_type=RESORT&min_price=100&max_price=500&sort_by=price_asc"
+          }
+        },
+        {
+          "name": "10. Filter by Availability Dates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Availability filter successful', function () { pm.expect(jsonData.success).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/filters/hotels?check_in=2026-11-01&check_out=2026-11-05&guests=2"
+          }
+        },
+        {
+          "name": "11. Validate Filter Parameters (Expect 400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Validation error handled', function () { pm.expect(jsonData.success).to.eql(false); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/filters/hotels?min_price=500&max_price=100"
+          }
+        },
+        {
+          "name": "12. Combine Multiple Filters in Single Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Combined filter successful', function () { pm.expect(jsonData.success).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/filters/hotels?min_price=100&max_price=400&min_rating=3.5&property_type=HOTEL,RESORT&city=Miami&sort_by=price_asc&page=1&limit=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 11: Hotel Details and Gallery",
+      "item": [
+        {
+          "name": "1. Retrieve Complete Hotel Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Details retrieved successfully', function () { pm.expect(json.success).to.eql(true); });",
+                  "pm.test('Contains policies and room types', function () {",
+                  "    pm.expect(json.data.policies).to.exist;",
+                  "    pm.expect(json.data.room_types).to.be.an('array');",
+                  "    pm.expect(json.data.reviews_summary).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}/details"
+          }
+        },
+        {
+          "name": "2. Add Gallery Image with Metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Gallery image added', function () { pm.expect(json.success).to.eql(true); });",
+                  "if (json.data && json.data.id) { pm.environment.set('gallery_image_id', json.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_url\": \"https://images.staynest.com/gallery/resort_lobby.jpg\",\n  \"title\": \"Grand Lobby Interior\",\n  \"caption\": \"Modern spacious lobby with welcoming concierge\",\n  \"image_type\": \"LOBBY\",\n  \"is_primary\": false,\n  \"display_order\": 2\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}/gallery"
+          }
+        },
+        {
+          "name": "3. Update Gallery Image Metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Metadata updated', function () { pm.expect(json.data.title).to.eql('Updated Grand Lobby'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Grand Lobby\",\n  \"display_order\": 5\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}/gallery/{{gallery_image_id}}"
+          }
+        },
+        {
+          "name": "4. List Hotel Gallery Images",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Gallery list returned', function () { pm.expect(json.data).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}/gallery"
+          }
+        },
+        {
+          "name": "5. Submit Hotel Review and Rating",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Review submitted', function () { pm.expect(json.data.rating).to.eql(5.0); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5.0,\n  \"comment\": \"Unbelievable luxury and attention to detail. Will visit again!\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}/reviews"
+          }
+        },
+        {
+          "name": "6. Retrieve Hotel Reviews Breakdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Rating summary provided', function () { pm.expect(json.data.summary.total_reviews).to.be.above(0); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/hotels/{{hotel_id}}/reviews"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 12: Room Booking System",
+      "item": [
+        {
+          "name": "1. Create Room Reservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Reservation created', function () { pm.expect(json.success).to.eql(true); });",
+                  "pm.test('Unique reference generated', function () { pm.expect(json.data.booking_reference).to.match(/^BK-/); });",
+                  "if (json.data && json.data.id) {",
+                  "    pm.environment.set('booking_id', json.data.id);",
+                  "    pm.environment.set('booking_reference', json.data.booking_reference);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": {{hotel_id}},\n  \"room_type_id\": {{room_type_id}},\n  \"check_in_date\": \"2026-11-01\",\n  \"check_out_date\": \"2026-11-04\",\n  \"special_requests\": \"Late check-in requested\",\n  \"guests\": [\n    {\n      \"full_name\": \"John Doe Customer\",\n      \"email\": \"customer@test.com\",\n      \"phone_number\": \"+1-555-0199\",\n      \"id_type\": \"PASSPORT\",\n      \"id_number\": \"US987654321\",\n      \"is_primary\": true,\n      \"guest_type\": \"ADULT\",\n      \"age\": 35\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "2. Customer Booking History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Booking list returned', function () { pm.expect(json.data).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/my-bookings"
+          }
+        },
+        {
+          "name": "3. Retrieve Booking by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Booking details matched', function () { pm.expect(json.data.id).to.eql(pm.environment.get('booking_id')); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}"
+          }
+        },
+        {
+          "name": "4. Retrieve Booking by Reference",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Reference matched', function () { pm.expect(json.data.booking_reference).to.eql(pm.environment.get('booking_reference')); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/reference/{{booking_reference}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 13: Guest Management",
+      "item": [
+        {
+          "name": "1. Add Guest to Booking with Identification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Guest added', function () { pm.expect(json.data.full_name).to.eql('Jane Guest'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Jane Guest\",\n  \"email\": \"jane@example.com\",\n  \"phone_number\": \"+1-555-0188\",\n  \"id_type\": \"NATIONAL_ID\",\n  \"id_number\": \"ID-887766\",\n  \"guest_type\": \"ADULT\",\n  \"age\": 32,\n  \"special_requests\": \"Feather-free pillows\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/guests"
+          }
+        },
+        {
+          "name": "2. Get Guests Linked to Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Guest count >= 2', function () { pm.expect(json.data.length).to.be.at.least(2); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/guests"
+          }
+        },
+        {
+          "name": "3. Hotel Guest History (Authorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Hotel guests retrieved', function () { pm.expect(json.data).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/hotel/{{hotel_id}}/guests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 14: Booking Management",
+      "item": [
+        {
+          "name": "1. Modify Booking Dates & Requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Modification successful', function () { pm.expect(json.data.check_out_date).to.eql('2026-11-05'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"check_out_date\": \"2026-11-05\",\n  \"special_requests\": \"Ground floor requested if possible\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/modify"
+          }
+        },
+        {
+          "name": "2. Update Booking Lifecycle Status (Check-in)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Status updated to CHECKED_IN', function () { pm.expect(json.data.status).to.eql('CHECKED_IN'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CHECKED_IN\",\n  \"notes\": \"Guest verified ID and checked in\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/status"
+          }
+        },
+        {
+          "name": "3. Booking Audit History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('History logs returned', function () { pm.expect(json.data.length).to.be.above(0); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/history"
+          }
+        },
+        {
+          "name": "4. List Hotel Reservations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Reservations list returned', function () { pm.expect(json.data).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/hotel/{{hotel_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 15: Stripe Payment Integration",
+      "item": [
+        {
+          "name": "1. Create Stripe Checkout Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Checkout session initialized', function () { pm.expect(json.data.session_id).to.exist; });",
+                  "pm.test('Checkout URL generated', function () { pm.expect(json.data.checkout_url).to.exist; });",
+                  "if (json.data && json.data.session_id) { pm.environment.set('stripe_session_id', json.data.session_id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}},\n  \"idempotency_key\": \"postman_idem_key_{{$timestamp}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/create-checkout-session"
+          }
+        },
+        {
+          "name": "2. Confirm Payment Result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Payment status is SUCCEEDED', function () { pm.expect(json.data.status).to.eql('SUCCEEDED'); });",
+                  "if (json.data && json.data.id) { pm.environment.set('payment_id', json.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}},\n  \"payment_intent_id\": \"pi_test_confirmed_postman\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/confirm"
+          }
+        },
+        {
+          "name": "3. Stripe Webhook Listener",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Webhook received', function () { pm.expect(json.received).to.eql(true); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"{{stripe_session_id}}\",\n      \"client_reference_id\": \"{{booking_id}}\"\n    }\n  }\n}"
+            },
+            "url": "{{base_url}}/api/v1/payments/webhook"
+          }
+        },
+        {
+          "name": "4. Get Payment by Booking ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Payment records found', function () { pm.expect(json.data).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/payments/booking/{{booking_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 16: Invoice and Receipt Management",
+      "item": [
+        {
+          "name": "1. Generate Invoice and Calculate Taxes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Invoice generated', function () { pm.expect(json.data.invoice_number).to.match(/^INV-/); });",
+                  "pm.test('Taxes calculated', function () { pm.expect(json.data.tax_amount).to.be.above(0); });",
+                  "if (json.data && json.data.id) {",
+                  "    pm.environment.set('invoice_id', json.data.id);",
+                  "    pm.environment.set('invoice_number', json.data.invoice_number);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_rate\": 10.0\n}"
+            },
+            "url": "{{base_url}}/api/v1/invoices/generate/{{booking_id}}"
+          }
+        },
+        {
+          "name": "2. Retrieve Customer Invoices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Invoices list returned', function () { pm.expect(json.data).to.be.an('array'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/invoices/my-invoices"
+          }
+        },
+        {
+          "name": "3. Retrieve Invoice by Booking ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Invoice matched', function () { pm.expect(json.data.booking_id).to.eql(pm.environment.get('booking_id')); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/invoices/booking/{{booking_id}}"
+          }
+        },
+        {
+          "name": "4. Download Printable HTML Receipt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is HTML', function () {",
+                  "    pm.expect(pm.response.headers.get('content-type')).to.include('text/html');",
+                  "    pm.expect(pm.response.text()).to.include('INVOICE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/invoices/{{invoice_id}}/download"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 17: Cancellation and Refund Management",
+      "item": [
+        {
+          "name": "1. Calculate Cancellation Policy Quote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Quote calculated', function () { pm.expect(json.data.refundable_amount).to.be.at.least(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}}\n}"
+            },
+            "url": "{{base_url}}/api/v1/refunds/policy-quote"
+          }
+        },
+        {
+          "name": "2. Submit Refund Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.status).to.eql('PENDING');",
+                  "pm.environment.set('refund_id', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}},\n  \"reason\": \"Flight cancelled and unable to reach destination\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/refunds/request"
+          }
+        },
+        {
+          "name": "3. Retrieve My Refund Requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/refunds/my-requests"
+          }
+        },
+        {
+          "name": "4. Approve Refund Request (Owner/Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.status).to.eql('APPROVED');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_notes\": \"Approved based on cancellation policy conditions\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/refunds/{{refund_id}}/approve"
+          }
+        },
+        {
+          "name": "5. Process Refund via Stripe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.status).to.eql('PROCESSED');",
+                  "pm.expect(json.data.stripe_refund_id).to.be.a('string');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/refunds/{{refund_id}}/process"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 18: Coupon and Discount Management",
+      "item": [
+        {
+          "name": "1. Create Promotional Coupon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('coupon_id', json.data.id);",
+                  "pm.environment.set('coupon_code', json.data.code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME20\",\n  \"description\": \"Welcome bonus 20% discount\",\n  \"discount_type\": \"PERCENTAGE\",\n  \"discount_value\": 20.0,\n  \"max_discount_amount\": 150.0,\n  \"min_booking_amount\": 100.0,\n  \"start_date\": \"2026-01-01T00:00:00\",\n  \"expiry_date\": \"2026-12-31T23:59:59\",\n  \"max_uses\": 500,\n  \"max_uses_per_user\": 1,\n  \"is_active\": true,\n  \"discount_category\": \"PROMOTIONAL\",\n  \"min_advance_days\": 0\n}"
+            },
+            "url": "{{base_url}}/api/v1/coupons"
+          }
+        },
+        {
+          "name": "2. List Active Coupons",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/coupons"
+          }
+        },
+        {
+          "name": "3. Validate Coupon Applicability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.valid).to.eql(true);",
+                  "pm.expect(json.data.discount_amount).to.be.above(0);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{coupon_code}}\",\n  \"hotel_id\": {{hotel_id}},\n  \"booking_amount\": 300.0\n}"
+            },
+            "url": "{{base_url}}/api/v1/coupons/validate"
+          }
+        },
+        {
+          "name": "4. Apply Coupon to Reservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.applied).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}},\n  \"code\": \"{{coupon_code}}\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/coupons/apply"
+          }
+        },
+        {
+          "name": "5. Retrieve Coupon Usages Tracking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/coupons/{{coupon_id}}/usages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 19: Reviews and Ratings",
+      "item": [
+        {
+          "name": "1. Submit Review for Completed Stay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('review_id', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": {{hotel_id}},\n  \"booking_id\": {{booking_id}},\n  \"rating\": 5.0,\n  \"comment\": \"Incredible amenities, spotless rooms, and world-class hospitality.\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/reviews"
+          }
+        },
+        {
+          "name": "2. Retrieve Hotel Reviews and Average Rating",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.summary.total_reviews).to.be.at.least(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/reviews/hotel/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "3. Update Review by Author",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4.9,\n  \"comment\": \"Updated review: Stellar service throughout!\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/reviews/{{review_id}}"
+          }
+        },
+        {
+          "name": "4. Report Inappropriate Review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Suspected commercial promotional content\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/reviews/{{review_id}}/report"
+          }
+        },
+        {
+          "name": "5. Moderate Review (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"notes\": \"Review authenticated\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/reviews/{{review_id}}/moderate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 20: Wishlist and Favorite Hotels",
+      "item": [
+        {
+          "name": "1. Add Hotel and Room to Wishlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('wishlist_id', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": {{hotel_id}},\n  \"notes\": \"Saved for summer family vacation\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/wishlist"
+          }
+        },
+        {
+          "name": "2. Retrieve Customer Wishlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/wishlist"
+          }
+        },
+        {
+          "name": "3. Check Hotel Wishlist Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.is_favorite).to.be.a('boolean');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/wishlist/check/{{hotel_id}}"
+          }
+        },
+        {
+          "name": "4. Remove Item from Wishlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/wishlist/{{wishlist_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 21: AI Hotel Recommendation Engine",
+      "item": [
+        {
+          "name": "1. Get AI Personalized Hotel Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.recommendations).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/recommendations/personalized"
+          }
+        },
+        {
+          "name": "2. Get Budget and Location Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.recommendations).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/recommendations/budget-location?city=Miami&max_budget=500"
+          }
+        },
+        {
+          "name": "3. Get Similar Hotel Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.recommendations).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/recommendations/similar/{{hotel_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Module 22: AI Travel Assistant",
+      "item": [
+        {
+          "name": "1. Generate AI Trip Plan and Itinerary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.daily_itinerary).to.be.an('array');",
+                  "pm.expect(json.data.suggested_hotels).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination\": \"Miami\",\n  \"budget\": 1200.0,\n  \"travel_style\": \"luxury\",\n  \"guests_count\": 2,\n  \"special_preferences\": \"Oceanfront view and spa experiences\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/ai-assistant/plan-trip"
+          }
+        },
+        {
+          "name": "2. Chat with AI Travel Assistant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data.reply).to.be.a('string');",
+                  "pm.environment.set('conversation_id', json.data.conversation_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are the best luxury beachfront resorts in Miami for a 3-night getaway?\",\n  \"destination\": \"Miami\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/ai-assistant/chat"
+          }
+        },
+        {
+          "name": "3. Retrieve Past AI Travel Conversations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.expect(json.data).to.be.an('array');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/ai-assistant/conversations"
+          }
+        },
+        {
+          "name": "4. Retrieve Conversation History Context",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/ai-assistant/conversations/{{conversation_id}}"
+          }
+        },
+        {
+          "name": "5. Delete AI Conversation Context",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/ai-assistant/conversations/{{conversation_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
